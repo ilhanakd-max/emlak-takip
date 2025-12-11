@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Emlak Takip Sistemi</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-weak: #dbeafe;
+      --secondary: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --bg-light: #f8fafc;
+      --bg-dark: #1e293b;
+      --text-light: #f1f5f9;
+      --text-dark: #1e293b;
+      --card-light: #ffffff;
+      --card-dark: #334155;
+      --muted: #94a3b8;
+      --border: #e2e8f0;
+      --radius: 12px;
+      --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+      --transition: all 0.2s ease;
+      --sidebar-width: 260px;
+      --header-height: 64px;
+      font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg-light); color: var(--text-dark); min-height: 100vh; display: flex; }
+    body.dark { background: var(--bg-dark); color: var(--text-light); }
+    body.dark .card { background: var(--card-dark); color: var(--text-light); }
+    body.dark .sidebar { background: #0f172a; border-color: #1f2937; }
+    body.dark .header { background: #0f172a; border-color: #1f2937; }
+    body.dark input, body.dark select, body.dark textarea { background: #0b1221; border-color: #1f2937; color: var(--text-light); }
+    .app { display: flex; width: 100%; }
+    .sidebar { width: var(--sidebar-width); background: #0b1a35; color: #fff; padding: 20px; position: fixed; top: 0; left: 0; bottom: 0; overflow-y: auto; border-right: 1px solid #0f172a; transition: var(--transition); z-index: 10; }
+    .sidebar.hidden { transform: translateX(-100%); }
+    .sidebar .logo { font-size: 20px; font-weight: 700; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+    .sidebar nav a { display: flex; align-items: center; gap: 12px; padding: 12px 14px; color: #cbd5e1; text-decoration: none; border-radius: var(--radius); transition: var(--transition); font-weight: 600; margin-bottom: 6px; }
+    .sidebar nav a:hover, .sidebar nav a.active { background: rgba(37, 99, 235, 0.15); color: #fff; }
+    .sidebar .footer { margin-top: 20px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; gap: 10px; }
+    .main { margin-left: var(--sidebar-width); flex: 1; display: flex; flex-direction: column; min-height: 100vh; transition: var(--transition); }
+    .header { height: var(--header-height); border-bottom: 1px solid var(--border); background: #fff; display: flex; align-items: center; gap: 12px; padding: 0 20px; position: sticky; top: 0; z-index: 5; }
+    .header .title { font-weight: 700; font-size: 18px; }
+    .header .search { flex: 1; position: relative; }
+    .header input[type="search"] { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; }
+    .header .actions { display: flex; gap: 8px; }
+    .btn { border: none; cursor: pointer; border-radius: var(--radius); padding: 10px 14px; font-weight: 700; transition: var(--transition); display: inline-flex; align-items: center; gap: 8px; font-size: 14px; }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-secondary { background: #e2e8f0; color: #0f172a; }
+    .btn-success { background: var(--secondary); color: #fff; }
+    .btn-warning { background: var(--warning); color: #fff; }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-ghost { background: transparent; border: 1px solid var(--border); color: inherit; }
+    .btn:hover { filter: brightness(1.03); transform: translateY(-1px); }
+    .btn-icon { width: 44px; height: 44px; justify-content: center; }
+    .content { padding: 20px; }
+    .grid { display: grid; gap: 16px; }
+    .grid.cards-4 { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+    .card { background: var(--card-light); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); border: 1px solid var(--border); }
+    h2 { margin: 0 0 12px; font-size: 20px; }
+    h3 { margin: 0 0 8px; }
+    .muted { color: var(--muted); font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 10px 8px; text-align: left; border-bottom: 1px solid var(--border); }
+    th { font-size: 13px; color: var(--muted); cursor: pointer; }
+    tr:hover { background: rgba(37,99,235,0.05); }
+    .status { padding: 6px 10px; border-radius: 999px; font-weight: 700; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; }
+    .status.aktif { background: rgba(16,185,129,0.15); color: #0f5132; }
+    .status.pasif { background: rgba(99,115,129,0.2); color: #475569; }
+    .status.satildi { background: rgba(37,99,235,0.15); color: #1d4ed8; }
+    .status.kiralandi { background: rgba(245,158,11,0.15); color: #b45309; }
+    .pill { background: var(--primary-weak); color: var(--primary); padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+    .section { display: none; }
+    .section.active { display: block; }
+    form { display: grid; gap: 12px; }
+    label { font-weight: 700; font-size: 14px; }
+    input, select, textarea { padding: 10px 12px; border-radius: var(--radius); border: 1px solid var(--border); font-size: 14px; }
+    textarea { min-height: 80px; resize: vertical; }
+    .form-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+    .flex { display: flex; gap: 10px; align-items: center; }
+    .badge { display: inline-block; background: var(--primary-weak); color: var(--primary); padding: 4px 8px; border-radius: 8px; font-weight: 700; font-size: 12px; }
+    .list-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .tabs { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+    .tab { padding: 10px 14px; border-radius: var(--radius); cursor: pointer; border: 1px solid var(--border); font-weight: 700; }
+    .tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .view-toggle { display: flex; gap: 6px; align-items: center; }
+    .property-card img { width: 100%; border-radius: 10px; aspect-ratio: 16/9; object-fit: cover; background: #e2e8f0; }
+    .chip { display: inline-block; padding: 4px 10px; border-radius: 999px; background: #e2e8f0; font-weight: 700; margin-right: 6px; margin-bottom: 6px; }
+    .kanban { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+    .kanban-column { background: var(--card-light); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; box-shadow: var(--shadow); }
+    .tag { font-size: 12px; padding: 4px 10px; border-radius: 10px; font-weight: 700; }
+    .tag.acil { background: rgba(239,68,68,0.15); color: #b91c1c; }
+    .tag.yuksek { background: rgba(245,158,11,0.18); color: #b45309; }
+    .tag.normal { background: rgba(16,185,129,0.18); color: #0f5132; }
+    .tag.dusuk { background: rgba(148,163,184,0.2); color: #475569; }
+    .alert { padding: 12px; border-radius: var(--radius); background: var(--primary-weak); color: var(--primary); }
+    .pagination { display: flex; gap: 6px; flex-wrap: wrap; }
+    .pagination button { padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border); background: #fff; cursor: pointer; }
+    .pagination button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(15,23,42,0.6); display: none; align-items: center; justify-content: center; z-index: 20; }
+    .modal-backdrop.active { display: flex; }
+    .modal { background: var(--card-light); padding: 20px; border-radius: var(--radius); max-width: 960px; width: 95%; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow); }
+    .toast { position: fixed; right: 20px; bottom: 20px; background: var(--card-light); color: inherit; border: 1px solid var(--border); padding: 12px 14px; border-radius: 10px; box-shadow: var(--shadow); display: none; z-index: 30; }
+    .chart { width: 100%; height: 220px; position: relative; }
+    .empty { padding: 12px; border: 1px dashed var(--border); border-radius: var(--radius); text-align: center; color: var(--muted); }
+    .fab { position: fixed; right: 18px; bottom: 18px; background: var(--primary); color: #fff; width: 56px; height: 56px; border-radius: 50%; display: none; align-items: center; justify-content: center; box-shadow: var(--shadow); font-size: 26px; cursor: pointer; z-index: 15; }
+    .fab-menu { position: fixed; right: 18px; bottom: 80px; display: none; flex-direction: column; gap: 8px; z-index: 15; }
+    .fab-menu button { width: 46px; height: 46px; border-radius: 50%; border: none; cursor: pointer; color: #fff; box-shadow: var(--shadow); }
+    .fab-menu .fab-emlak { background: var(--primary); }
+    .fab-menu .fab-musteri { background: var(--secondary); }
+    .fab-menu .fab-randevu { background: var(--warning); }
+    @media (max-width: 1024px) { .sidebar { transform: translateX(-100%); position: fixed; } .sidebar.show { transform: translateX(0); } .main { margin-left: 0; } .fab { display: flex; } .header { position: sticky; top: 0; background: #fff; z-index: 5; } }
+    @media print { body { background: #fff; } .sidebar, .header, .fab, .toast, .fab-menu, .btn, .tabs, .view-toggle { display: none !important; } .section { display: block !important; } .card { box-shadow: none; border: none; } }
+  </style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+<div class="modal-backdrop" id="modal-backdrop"><div class="modal" id="modal"></div></div>
+<div class="fab" id="fab">+</div>
+<div class="fab-menu" id="fab-menu">
+  <button class="fab-emlak" title="Emlak Ekle" onclick="acEmlakForm()">🏠</button>
+  <button class="fab-musteri" title="Müşteri Ekle" onclick="acMusteriForm()">👥</button>
+  <button class="fab-randevu" title="Randevu Ekle" onclick="acRandevuForm()">📅</button>
+</div>
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="logo">🏠 Emlak Takip</div>
+    <nav>
+      <a href="#" data-section="dashboard" class="active">📊 Dashboard</a>
+      <a href="#" data-section="emlak">🏠 Emlaklar</a>
+      <a href="#" data-section="musteri">👥 Müşteriler</a>
+      <a href="#" data-section="randevu">📅 Randevular</a>
+      <a href="#" data-section="gorev">✅ Görevler</a>
+      <a href="#" data-section="finans">💰 Finans</a>
+      <a href="#" data-section="rapor">📈 Raporlar</a>
+      <a href="#" data-section="ayar">⚙️ Ayarlar</a>
+    </nav>
+    <div class="footer">
+      <button class="btn btn-secondary" onclick="temaToggle()">Tema Değiştir</button>
+      <button class="btn btn-ghost" onclick="yedekAl()">Yedek Al</button>
+      <label class="btn btn-ghost" style="justify-content:center; cursor:pointer;">
+        Yedek Yükle
+        <input type="file" accept="application/json" style="display:none" onchange="yedekYukle(event)" />
+      </label>
+    </div>
+  </aside>
+  <div class="main">
+    <header class="header">
+      <button class="btn btn-icon btn-ghost" id="menu-toggle">☰</button>
+      <div class="title" id="page-title">Dashboard</div>
+      <div class="search"><input id="global-search" type="search" placeholder="Hızlı arama (Ctrl+F)" /></div>
+      <div class="actions">
+        <button class="btn btn-ghost" onclick="print()">🖨️ Yazdır</button>
+        <button class="btn btn-primary" onclick="acEmlakForm()">+ Emlak</button>
+      </div>
+    </header>
+    <main class="content">
+      <section id="dashboard" class="section active">
+        <div class="grid cards-4" id="dashboard-cards"></div>
+        <div class="grid" style="grid-template-columns: 2fr 1fr; gap: 16px; margin-top: 16px;">
+          <div class="card">
+            <div class="flex" style="justify-content: space-between; align-items:center;">
+              <h3>Son Eklenen Emlaklar</h3>
+              <button class="btn btn-ghost" onclick="gotoSection('emlak')">Tümü →</button>
+            </div>
+            <div id="son-emlaklar"></div>
+          </div>
+          <div class="card">
+            <h3>Bugünün Randevuları</h3>
+            <div id="bugun-randevu"></div>
+          </div>
+        </div>
+        <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); margin-top: 16px;">
+          <div class="card"><h3>Emlak Durumu</h3><canvas id="emlak-durum-chart" height="200"></canvas></div>
+          <div class="card"><h3>Aylık Satışlar</h3><canvas id="satis-chart" height="200"></canvas></div>
+          <div class="card"><h3>Acil Görevler</h3><div id="acil-gorev"></div></div>
+        </div>
+      </section>
+      <section id="emlak" class="section">
+        <div class="flex" style="justify-content: space-between; align-items:center; flex-wrap: wrap; gap: 8px;">
+          <div class="tabs" id="emlak-filter-tabs">
+            <div class="tab active" data-durum="">Tümü</div>
+            <div class="tab" data-durum="aktif">Aktif</div>
+            <div class="tab" data-durum="satildi">Satıldı</div>
+            <div class="tab" data-durum="kiralandi">Kiralandı</div>
+            <div class="tab" data-durum="pasif">Pasif</div>
+          </div>
+          <div class="view-toggle">
+            <button class="btn btn-ghost" id="table-view" aria-label="Tablo görünümü">📋</button>
+            <button class="btn btn-ghost" id="card-view" aria-label="Kart görünümü">🗂️</button>
+            <button class="btn btn-primary" onclick="acEmlakForm()">+ Emlak Ekle</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="form-grid">
+            <input id="emlak-search" placeholder="Hızlı arama" />
+            <select id="emlak-tur-filter">
+              <option value="">İlan Türü</option>
+              <option value="satilik">Satılık</option>
+              <option value="kiralik">Kiralık</option>
+              <option value="devren-satilik">Devren Satılık</option>
+              <option value="devren-kiralik">Devren Kiralık</option>
+              <option value="gunluk-kiralik">Günlük Kiralık</option>
+            </select>
+            <select id="emlak-durum-filter">
+              <option value="">Durum</option>
+              <option value="aktif">Aktif</option>
+              <option value="opsiyonlu">Opsiyonlu</option>
+              <option value="satildi">Satıldı</option>
+              <option value="kiralandi">Kiralandı</option>
+              <option value="pasif">Pasif</option>
+            </select>
+            <div class="flex">
+              <input id="fiyat-min" type="number" placeholder="Fiyat min" />
+              <input id="fiyat-max" type="number" placeholder="Fiyat max" />
+            </div>
+          </div>
+        </div>
+        <div id="emlak-list-container" class="card">
+          <div id="emlak-table-wrapper"></div>
+          <div id="emlak-card-wrapper" style="display:none;"></div>
+          <div class="pagination" id="emlak-pagination"></div>
+        </div>
+      </section>
+      <section id="musteri" class="section">
+        <div class="flex" style="justify-content: space-between; align-items:center; flex-wrap: wrap; gap: 8px;">
+          <h2>Müşteri Yönetimi</h2>
+          <button class="btn btn-primary" onclick="acMusteriForm()">+ Müşteri Ekle</button>
+        </div>
+        <div class="card">
+          <div class="form-grid">
+            <input id="musteri-search" placeholder="Ad/Telefon/E-posta" />
+            <select id="musteri-durum-filter">
+              <option value="">Durum</option>
+              <option value="aktif-ariyor">Aktif Arıyor</option>
+              <option value="acil">Acil</option>
+              <option value="beklemede">Beklemede</option>
+              <option value="anlasma-saglandi">Anlaşma Sağlandı</option>
+              <option value="iptal">İptal</option>
+            </select>
+            <select id="musteri-kaynak-filter">
+              <option value="">Kaynak</option>
+              <option value="referans">Referans</option>
+              <option value="internet">İnternet</option>
+              <option value="sosyal-medya">Sosyal Medya</option>
+              <option value="tabela">Tabela</option>
+              <option value="mevcut-musteri">Mevcut Müşteri</option>
+            </select>
+          </div>
+        </div>
+        <div class="card" id="musteri-list"></div>
+      </section>
+      <section id="randevu" class="section">
+        <div class="flex" style="justify-content: space-between; align-items:center; flex-wrap: wrap; gap: 8px;">
+          <h2>Randevu Takibi</h2>
+          <button class="btn btn-primary" onclick="acRandevuForm()">+ Randevu Ekle</button>
+        </div>
+        <div class="card" id="randevu-list"></div>
+      </section>
+      <section id="gorev" class="section">
+        <div class="flex" style="justify-content: space-between; align-items:center; flex-wrap: wrap; gap: 8px;">
+          <h2>Görev Yönetimi</h2>
+          <button class="btn btn-primary" onclick="acGorevForm()">+ Görev Ekle</button>
+        </div>
+        <div class="kanban" id="gorev-kanban"></div>
+      </section>
+      <section id="finans" class="section">
+        <div class="flex" style="justify-content: space-between; align-items:center; flex-wrap: wrap; gap: 8px;">
+          <h2>Finans Takibi</h2>
+          <button class="btn btn-primary" onclick="acIslemForm()">+ İşlem Ekle</button>
+        </div>
+        <div class="grid cards-4" id="finans-kart"></div>
+        <div class="card" id="islem-list" style="margin-top:12px;"></div>
+      </section>
+      <section id="rapor" class="section">
+        <div class="flex" style="justify-content: space-between; align-items:center; flex-wrap: wrap; gap: 8px;">
+          <h2>Raporlar</h2>
+          <div class="flex" style="gap:6px; flex-wrap: wrap;">
+            <input id="rapor-baslangic" type="date" />
+            <input id="rapor-bitis" type="date" />
+            <button class="btn btn-primary" onclick="renderRaporlar()">Filtrele</button>
+          </div>
+        </div>
+        <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(280px,1fr));">
+          <div class="card"><h3>Portföy Raporu</h3><div id="portfoy-rapor"></div></div>
+          <div class="card"><h3>Satış Raporu</h3><div id="satis-rapor"></div></div>
+          <div class="card"><h3>Müşteri Raporu</h3><div id="musteri-rapor"></div></div>
+        </div>
+      </section>
+      <section id="ayar" class="section">
+        <h2>Ayarlar</h2>
+        <div class="card">
+          <form id="ayar-form" onsubmit="ayarKaydet(event)">
+            <div class="form-grid">
+              <div><label>Ofis/Şirket Adı</label><input name="sirketAdi" required /></div>
+              <div><label>Telefon</label><input name="telefon" required /></div>
+              <div><label>E-posta</label><input type="email" name="email" /></div>
+              <div><label>Adres</label><textarea name="adres"></textarea></div>
+              <div><label>Satış Komisyon Oranı (%)</label><input type="number" step="0.1" name="satisKomisyonOrani" /></div>
+              <div><label>Kiralama Komisyon Oranı</label><input type="number" step="0.1" name="kiralamaKomisyonOrani" /></div>
+              <div><label>Varsayılan Para Birimi</label><select name="paraBirimiVarsayilan"><option>TL</option><option>USD</option><option>EUR</option></select></div>
+              <div><label>Tema</label><select name="tema"><option value="light">Açık</option><option value="dark">Koyu</option></select></div>
+              <div><label>Varsayılan Görünüm</label><select name="varsayilanGorunum"><option value="tablo">Tablo</option><option value="kart">Kart</option></select></div>
+              <div><label>Sayfa Başı Kayıt</label><input type="number" name="sayfaBasiKayit" min="5" max="100" /></div>
+            </div>
+            <div class="flex" style="justify-content: flex-end; margin-top: 10px; gap:8px; flex-wrap: wrap;">
+              <button type="button" class="btn btn-danger" onclick="tumVerileriSil()">Tüm Verileri Sil</button>
+              <button type="submit" class="btn btn-primary">Kaydet</button>
+            </div>
+          </form>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+<script>
+const STORAGE_KEY = 'emlakTakipData';
+const DEFAULT_DATA = {
+  emlaklar: [],
+  musteriler: [],
+  randevular: [],
+  gorevler: [],
+  islemler: [],
+  ayarlar: {
+    sirketAdi: 'ABC Emlak', logo: '', telefon: '0212 123 45 67', email: 'info@abcemlak.com', adres: 'İstanbul',
+    satisKomisyonOrani: 2, kiralamaKomisyonOrani: 1, paraBirimiVarsayilan: 'TL', tema: 'light', varsayilanGorunum: 'tablo', sayfaBasiKayit: 20,
+    sonYedeklemeTarihi: null
+  },
+  iller: [
+    { ad: 'Adana', ilceler: ['Seyhan','Yüreğir','Çukurova','Sarıçam','Aladağ','Ceyhan','Feke','İmamoğlu','Karaisalı','Karataş','Kozan','Pozantı','Saimbeyli','Tufanbeyli','Yumurtalık'] },
+    { ad: 'Adıyaman', ilceler: ['Merkez','Besni','Çelikhan','Gerger','Gölbaşı','Kahta','Samsat','Sincik','Tut'] },
+    { ad: 'Afyonkarahisar', ilceler: ['Merkez','Başmakçı','Bayat','Bolvadin','Çay','Çobanlar','Dazkırı','Dinar','Emirdağ','Evciler','Hocalar','İhsaniye','İscehisar','Kızılören','Sandıklı','Sinanpaşa','Sultandağı','Şuhut'] },
+    { ad: 'Ağrı', ilceler: ['Merkez','Diyadin','Doğubayazıt','Eleşkirt','Hamur','Patnos','Taşlıçay','Tutak'] },
+    { ad: 'Aksaray', ilceler: ['Merkez','Ağaçören','Eskil','Gülağaç','Güzelyurt','Ortaköy','Sarıyahşi','Sultanhanı'] },
+    { ad: 'Amasya', ilceler: ['Merkez','Göynücek','Gümüşhacıköy','Hamamözü','Merzifon','Suluova','Taşova'] },
+    { ad: 'Ankara', ilceler: ['Altındağ','Ayaş','Bala','Beypazarı','Çamlıdere','Çankaya','Çubuk','Elmadağ','Etimesgut','Evren','Gölbaşı','Güdül','Haymana','Kalecik','Kahramankazan','Keçiören','Kızılcahamam','Mamak','Nallıhan','Polatlı','Pursaklar','Sincan','Şereflikoçhisar','Yenimahalle'] },
+    { ad: 'Antalya', ilceler: ['Aksu','Alanya','Demre','Döşemealtı','Elmalı','Finike','Gazipaşa','Gündoğmuş','İbradı','Kaş','Kemer','Kepez','Konyaaltı','Korkuteli','Kumluca','Manavgat','Muratpaşa','Serik'] },
+    { ad: 'Ardahan', ilceler: ['Merkez','Çıldır','Damal','Göle','Hanak','Posof'] },
+    { ad: 'Artvin', ilceler: ['Merkez','Ardanuç','Arhavi','Borçka','Hopa','Murgul','Şavşat','Yusufeli'] },
+    { ad: 'Aydın', ilceler: ['Efeler','Bozdoğan','Buharkent','Çine','Didim','Germencik','İncirliova','Karacasu','Karpuzlu','Koçarlı','Köşk','Kuşadası','Kuyucak','Nazilli','Söke','Sultanhisar','Yenipazar'] },
+    { ad: 'Balıkesir', ilceler: ['Altıeylül','Ayvalık','Balya','Bandırma','Bigadiç','Burhaniye','Dursunbey','Edremit','Erdek','Gömeç','Gönen','Havran','İvrindi','Karesi','Kepsut','Manyas','Marmara','Savaştepe','Sındırgı','Susurluk'] },
+    { ad: 'Bartın', ilceler: ['Merkez','Amasra','Kurucaşile','Ulus'] },
+    { ad: 'Batman', ilceler: ['Merkez','Beşiri','Gercüş','Hasankeyf','Kozluk','Sason'] },
+    { ad: 'Bayburt', ilceler: ['Merkez','Aydıntepe','Demirözü'] },
+    { ad: 'Bilecik', ilceler: ['Merkez','Bozüyük','Gölpazarı','İnhisar','Osmaneli','Pazaryeri','Söğüt','Yenipazar'] },
+    { ad: 'Bingöl', ilceler: ['Merkez','Adaklı','Genç','Karlıova','Kiğı','Solhan','Yayladere','Yedisu'] },
+    { ad: 'Bitlis', ilceler: ['Merkez','Adilcevaz','Ahlat','Güroymak','Hizan','Mutki','Tatvan'] },
+    { ad: 'Bolu', ilceler: ['Merkez','Dörtdivan','Gerede','Göynük','Kıbrıscık','Mengen','Mudurnu','Seben','Yeniçağa'] },
+    { ad: 'Burdur', ilceler: ['Merkez','Ağlasun','Altınyayla','Bucak','Çavdır','Çeltikçi','Gölhisar','Karamanlı','Kemer','Tefenni','Yeşilova'] },
+    { ad: 'Bursa', ilceler: ['Gemlik','Gürsu','Harmancık','İnegöl','İznik','Karacabey','Keles','Kestel','Mudanya','Mustafakemalpaşa','Nilüfer','Orhaneli','Orhangazi','Osmangazi','Yenişehir','Yıldırım','Büyükorhan'] },
+    { ad: 'Çanakkale', ilceler: ['Merkez','Ayvacık','Bayramiç','Biga','Bozcaada','Çan','Eceabat','Ezine','Gelibolu','Gökçeada','Lapseki','Yenice'] },
+    { ad: 'Çankırı', ilceler: ['Merkez','Atkaracalar','Bayramören','Çerkeş','Eldivan','Ilgaz','Kızılırmak','Korgun','Kurşunlu','Orta','Şabanözü','Yapraklı'] },
+    { ad: 'Çorum', ilceler: ['Merkez','Alaca','Bayat','Boğazkale','Dodurga','İskilip','Kargı','Laçin','Mecitözü','Oğuzlar','Ortaköy','Osmancık','Sungurlu','Uğurludağ'] },
+    { ad: 'Denizli', ilceler: ['Merkezefendi','Pamukkale','Acıpayam','Babadağ','Baklan','Bekilli','Beyağaç','Bozkurt','Buldan','Çal','Çameli','Çardak','Çivril','Güney','Honaz','Kale','Sarayköy','Serinhisar','Tavas'] },
+    { ad: 'Diyarbakır', ilceler: ['Bağlar','Kayapınar','Sur','Yenişehir','Bismil','Çermik','Çınar','Çüngüş','Dicle','Eğil','Ergani','Hani','Hazro','Kocaköy','Kulp','Lice','Silvan'] },
+    { ad: 'Düzce', ilceler: ['Merkez','Akçakoca','Cumayeri','Çilimli','Gölyaka','Gümüşova','Kaynaşlı','Yığılca'] },
+    { ad: 'Edirne', ilceler: ['Merkez','Enez','Havsa','İpsala','Keşan','Lalapaşa','Meriç','Süloğlu','Uzunköprü'] },
+    { ad: 'Elazığ', ilceler: ['Merkez','Ağın','Alacakaya','Arıcak','Baskil','Karakoçan','Keban','Kovancılar','Maden','Palu','Sivrice'] },
+    { ad: 'Erzincan', ilceler: ['Merkez','Çayırlı','İliç','Kemah','Kemaliye','Otlukbeli','Refahiye','Tercan','Üzümlü'] },
+    { ad: 'Erzurum', ilceler: ['Aziziye','Palandöken','Yakutiye','Aşkale','Çat','Hınıs','Horasan','İspir','Karaçoban','Karayazı','Köprüköy','Narman','Oltu','Olur','Pasinler','Pazaryolu','Şenkaya','Tekman','Tortum','Uzundere'] },
+    { ad: 'Eskişehir', ilceler: ['Odunpazarı','Tepebaşı','Alpu','Beylikova','Çifteler','Günyüzü','Han','İnönü','Mahmudiye','Mihalgazi','Mihalıççık','Sarıcakaya','Seyitgazi','Sivrihisar'] },
+    { ad: 'Gaziantep', ilceler: ['Şahinbey','Şehitkamil','Araban','İslahiye','Karkamış','Nizip','Nurdağı','Oğuzeli','Yavuzeli'] },
+    { ad: 'Giresun', ilceler: ['Merkez','Alucra','Bulancak','Çamoluk','Çanakçı','Dereli','Doğankent','Espiye','Eynesil','Görele','Güce','Keşap','Piraziz','Şebinkarahisar','Tirebolu','Yağlıdere'] },
+    { ad: 'Gümüşhane', ilceler: ['Merkez','Kelkit','Köse','Kürtün','Şiran','Torul'] },
+    { ad: 'Hakkari', ilceler: ['Merkez','Çukurca','Derecik','Şemdinli','Yüksekova'] },
+    { ad: 'Hatay', ilceler: ['Antakya','Defne','Altınözü','Arsuz','Belen','Dörtyol','Erzin','Hassa','İskenderun','Kırıkhan','Kumlu','Payas','Reyhanlı','Samandağ','Yayladağı'] },
+    { ad: 'Iğdır', ilceler: ['Merkez','Aralık','Karakoyunlu','Tuzluca'] },
+    { ad: 'Isparta', ilceler: ['Merkez','Aksu','Atabey','Eğirdir','Gelendost','Gönen','Keçiborlu','Senirkent','Sütçüler','Şarkikaraağaç','Uluborlu','Yalvaç','Yenişarbademli'] },
+    { ad: 'İstanbul', ilceler: ['Adalar','Arnavutköy','Ataşehir','Avcılar','Bağcılar','Bahçelievler','Bakırköy','Başakşehir','Bayrampaşa','Beşiktaş','Beykoz','Beylikdüzü','Beyoğlu','Büyükçekmece','Çatalca','Çekmeköy','Esenler','Esenyurt','Eyüpsultan','Fatih','Gaziosmanpaşa','Güngören','Kadıköy','Kağıthane','Kartal','Küçükçekmece','Maltepe','Pendik','Sancaktepe','Sarıyer','Silivri','Sultanbeyli','Sultangazi','Şile','Şişli','Tuzla','Ümraniye','Üsküdar','Zeytinburnu'] },
+    { ad: 'İzmir', ilceler: ['Aliağa','Balçova','Bayındır','Bayraklı','Bergama','Beydağ','Bornova','Buca','Çeşme','Çiğli','Dikili','Foça','Gaziemir','Güzelbahçe','Karabağlar','Karaburun','Karşıyaka','Kemalpaşa','Kınık','Kiraz','Konak','Menderes','Menemen','Narlıdere','Ödemiş','Seferihisar','Selçuk','Tire','Torbalı','Urla'] },
+    { ad: 'Kahramanmaraş', ilceler: ['Dulkadiroğlu','Onikişubat','Afşin','Andırın','Çağlayancerit','Ekinözü','Elbistan','Göksun','Nurhak','Pazarcık','Türkoğlu'] },
+    { ad: 'Karabük', ilceler: ['Merkez','Eflani','Eskipazar','Ovacık','Safranbolu','Yenice'] },
+    { ad: 'Karaman', ilceler: ['Merkez','Ayrancı','Başyayla','Ermenek','Kazımkarabekir','Sarıveliler'] },
+    { ad: 'Kars', ilceler: ['Merkez','Akyaka','Arpaçay','Digor','Kağızman','Sarıkamış','Selim','Susuz'] },
+    { ad: 'Kastamonu', ilceler: ['Merkez','Abana','Ağlı','Araç','Azdavay','Bozkurt','Cide','Çatalzeytin','Daday','Devrekani','Doğanyurt','Hanönü','İhsangazi','İnebolu','Küre','Pınarbaşı','Seydiler','Şenpazar','Taşköprü','Tosya'] },
+    { ad: 'Kayseri', ilceler: ['Kocasinan','Melikgazi','Talas','Akkışla','Bünyan','Develi','Felahiye','Hacılar','İncesu','Özvatan','Pınarbaşı','Sarıoğlan','Sarız','Tomarza','Yahyalı','Yeşilhisar'] },
+    { ad: 'Kırıkkale', ilceler: ['Merkez','Bahşili','Balışeyh','Çelebi','Delice','Karakeçili','Keskin','Sulakyurt','Yahşihan'] },
+    { ad: 'Kırklareli', ilceler: ['Merkez','Babaeski','Demirköy','Kofçaz','Lüleburgaz','Pehlivanköy','Pınarhisar','Vize'] },
+    { ad: 'Kırşehir', ilceler: ['Merkez','Akçakent','Akpınar','Boztepe','Çiçekdağı','Kaman','Mucur'] },
+    { ad: 'Kilis', ilceler: ['Merkez','Elbeyli','Musabeyli','Polateli'] },
+    { ad: 'Kocaeli', ilceler: ['Başiskele','Çayırova','Darıca','Derince','Dilovası','Gebze','Gölcük','İzmit','Kandıra','Karamürsel','Kartepe','Körfez'] },
+    { ad: 'Konya', ilceler: ['Karatay','Meram','Selçuklu','Ahırlı','Akören','Akşehir','Altınekin','Beyşehir','Bozkır','Cihanbeyli','Çeltik','Çumra','Derbent','Derebucak','Doğanhisar','Emirgazi','Ereğli','Güneysınır','Hadim','Halkapınar','Hüyük','Ilgın','Kadınhanı','Kulu','Sarayönü','Seydişehir','Taşkent','Tuzlukçu','Yalıhüyük','Yunak'] },
+    { ad: 'Kütahya', ilceler: ['Merkez','Altıntaş','Aslanapa','Çavdarhisar','Domaniç','Dumlupınar','Emet','Gediz','Hisarcık','Pazarlar','Şaphane','Simav','Tavşanlı'] },
+    { ad: 'Malatya', ilceler: ['Battalgazi','Yeşilyurt','Akçadağ','Arapgir','Arguvan','Darende','Doğanşehir','Doğanyol','Hekimhan','Kale','Kuluncak','Pütürge','Yazıhan'] },
+    { ad: 'Manisa', ilceler: ['Yunusemre','Şehzadeler','Ahmetli','Akhisar','Alaşehir','Demirci','Gölmarmara','Gördes','Kırkağaç','Köprübaşı','Kula','Salihli','Sarıgöl','Saruhanlı','Selendi','Soma','Turgutlu'] },
+    { ad: 'Mardin', ilceler: ['Artuklu','Dargeçit','Derik','Kızıltepe','Mazıdağı','Midyat','Nusaybin','Ömerli','Savur','Yeşilli'] },
+    { ad: 'Mersin', ilceler: ['Akdeniz','Yenişehir','Toroslar','Mezitli','Anamur','Aydıncık','Bozyazı','Çamlıyayla','Erdemli','Gülnar','Mut','Silifke','Tarsus'] },
+    { ad: 'Muğla', ilceler: ['Bodrum','Dalaman','Datça','Fethiye','Kavaklıdere','Köyceğiz','Marmaris','Menteşe','Milas','Ortaca','Seydikemer','Ula','Yatağan'] },
+    { ad: 'Muş', ilceler: ['Merkez','Bulanık','Hasköy','Korkut','Malazgirt','Varto'] },
+    { ad: 'Nevşehir', ilceler: ['Merkez','Acıgöl','Avanos','Derinkuyu','Gülşehir','Hacıbektaş','Kozaklı','Ürgüp'] },
+    { ad: 'Niğde', ilceler: ['Merkez','Altunhisar','Bor','Çamardı','Çiftlik','Ulukışla'] },
+    { ad: 'Ordu', ilceler: ['Altınordu','Akkuş','Aybastı','Çamaş','Çatalpınar','Çaybaşı','Fatsa','Gölköy','Gülyalı','Gürgentepe','İkizce','Kabadüz','Kabataş','Korgan','Kumru','Mesudiye','Perşembe','Ulubey','Ünye'] },
+    { ad: 'Osmaniye', ilceler: ['Merkez','Bahçe','Düziçi','Hasanbeyli','Kadirli','Sumbas','Toprakkale'] },
+    { ad: 'Rize', ilceler: ['Merkez','Ardeşen','Çamlıhemşin','Çayeli','Derepazarı','Fındıklı','Güneysu','Hemşin','İkizdere','İyidere','Kalkandere','Pazar'] },
+    { ad: 'Sakarya', ilceler: ['Adapazarı','Akyazı','Arifiye','Erenler','Ferizli','Geyve','Hendek','Karapürçek','Karasu','Kaynarca','Kocaali','Pamukova','Sapanca','Serdivan','Söğütlü','Taraklı'] },
+    { ad: 'Samsun', ilceler: ['Atakum','Canik','İlkadım','Tekkeköy','Alaçam','Asarcık','Ayvacık','Bafra','Çarşamba','Havza','Kavak','Ladik','Ondokuzmayıs','Salıpazarı','Terme','Vezirköprü','Yakakent'] },
+    { ad: 'Siirt', ilceler: ['Merkez','Aydınlar','Baykan','Eruh','Kurtalan','Pervari','Şirvan','Tillo'] },
+    { ad: 'Sinop', ilceler: ['Merkez','Ayancık','Boyabat','Dikmen','Durağan','Erfelek','Gerze','Saraydüzü','Türkeli'] },
+    { ad: 'Sivas', ilceler: ['Merkez','Akıncılar','Altınyayla','Divriği','Doğanşar','Gemerek','Gölova','Gürün','Hafik','İmranlı','Kangal','Koyulhisar','Suşehri','Şarkışla','Ulaş','Yıldızeli','Zara'] },
+    { ad: 'Şanlıurfa', ilceler: ['Eyyübiye','Haliliye','Karaköprü','Akçakale','Birecik','Bozova','Ceylanpınar','Halfeti','Harran','Hilvan','Siverek','Suruç','Viranşehir'] },
+    { ad: 'Şırnak', ilceler: ['Merkez','Beytüşşebap','Cizre','Güçlükonak','İdil','Silopi','Uludere'] },
+    { ad: 'Tekirdağ', ilceler: ['Çerkezköy','Çorlu','Ergene','Hayrabolu','Kapaklı','Malkara','Marmaraereğlisi','Muratlı','Saray','Süleymanpaşa','Şarköy'] },
+    { ad: 'Tokat', ilceler: ['Merkez','Almus','Artova','Başçiftlik','Erbaa','Niksar','Pazar','Reşadiye','Sulusaray','Turhal','Yeşilyurt','Zile'] },
+    { ad: 'Trabzon', ilceler: ['Ortahisar','Akçaabat','Araklı','Arsin','Beşikdüzü','Çarşıbaşı','Çaykara','Dernekpazarı','Düzköy','Hayrat','Köprübaşı','Maçka','Of','Sürmene','Şalpazarı','Tonya','Vakfıkebir','Yomra'] },
+    { ad: 'Tunceli', ilceler: ['Merkez','Çemişgezek','Hozat','Mazgirt','Nazımiye','Ovacık','Pertek','Pülümür'] },
+    { ad: 'Uşak', ilceler: ['Merkez','Banaz','Eşme','Karahallı','Sivaslı','Ulubey'] },
+    { ad: 'Van', ilceler: ['İpekyolu','Edremit','Tuşba','Bahçesaray','Başkale','Çaldıran','Çatak','Erciş','Gevaş','Gürpınar','Muradiye','Özalp','Saray'] },
+    { ad: 'Yalova', ilceler: ['Merkez','Altınova','Armutlu','Çınarcık','Çiftlikköy','Termal'] },
+    { ad: 'Yozgat', ilceler: ['Merkez','Akdağmadeni','Aydıncık','Boğazlıyan','Çandır','Çayıralan','Çekerek','Kadışehri','Saraykent','Sarıkaya','Sorgun','Şefaatli','Yenifakılı','Yerköy'] },
+    { ad: 'Zonguldak', ilceler: ['Merkez','Alaplı','Çaycuma','Devrek','Ereğli','Gökçebey','Kilimli','Kozlu'] }
+  ],
+  sayaclar: { emlak: 1, musteri: 1, randevu: 1, gorev: 1, islem: 1 }
+};
+let state = loadData();
+function loadData(){
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if(raw){
+    try { return JSON.parse(raw); } catch(e){ console.error(e); }
+  }
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_DATA));
+  return JSON.parse(JSON.stringify(DEFAULT_DATA));
+}
+function saveData(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); localStorageKontrol(); }
+function nextId(prefix){ const key=prefix.toLowerCase(); const no=state.sayaclar[key]||1; state.sayaclar[key]=no+1; return `${prefix.toUpperCase()}-${String(no).padStart(4,'0')}`; }
+function bildirimGoster(mesaj, tip='bilgi'){
+  const toast=document.getElementById('toast');
+  toast.textContent=mesaj;
+  toast.style.display='block';
+  toast.style.borderColor= tip==='hata'?'var(--danger)': tip==='uyari'?'var(--warning)':'var(--primary)';
+  setTimeout(()=>toast.style.display='none',2600);
+}
+function localStorageKontrol(){
+  const kullanilan=new Blob(Object.values(localStorage)).size;
+  const limit=5*1024*1024;
+  const oran=(kullanilan/limit)*100;
+  if(oran>80) bildirimGoster('Depolama alanı %'+oran.toFixed(0)+' dolu! Yedek alın.','uyari');
+}
+function temaToggle(force){
+  const tema=force || (state.ayarlar.tema==='light'?'dark':'light');
+  state.ayarlar.tema=tema;
+  document.body.classList.toggle('dark', tema==='dark');
+  saveData();
+}
+function initTheme(){ document.body.classList.toggle('dark', state.ayarlar.tema==='dark'); }
+function formatPara(tutar,birim='TL'){ return new Intl.NumberFormat('tr-TR').format(Number(tutar||0))+' '+birim; }
+function tarihYaz(tarih){ return tarih? new Date(tarih).toLocaleDateString('tr-TR'):'-'; }
+function openModal(html){ const modal=document.getElementById('modal'); modal.innerHTML=html; document.getElementById('modal-backdrop').classList.add('active'); }
+function closeModal(){ document.getElementById('modal-backdrop').classList.remove('active'); }
+document.getElementById('modal-backdrop').addEventListener('click',e=>{ if(e.target.id==='modal-backdrop') closeModal(); });
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape') closeModal();
+  if(e.ctrlKey && e.key.toLowerCase()==='f'){ e.preventDefault(); document.getElementById('global-search').focus(); }
+  if(e.ctrlKey && e.key.toLowerCase()==='n'){ e.preventDefault(); acEmlakForm(); }
+  if(e.ctrlKey && e.key.toLowerCase()==='m'){ e.preventDefault(); acMusteriForm(); }
+});
+function gotoSection(id){
+  document.querySelectorAll('.section').forEach(sec=>sec.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.sidebar nav a').forEach(a=>a.classList.toggle('active', a.dataset.section===id));
+  const label=document.querySelector(`[data-section="${id}"]`)?.textContent?.trim()||'Emlak Takip';
+  document.getElementById('page-title').textContent=label;
+  if(window.innerWidth<1024) document.getElementById('sidebar').classList.remove('show');
+}
+document.querySelectorAll('.sidebar nav a').forEach(a=>a.addEventListener('click',e=>{ e.preventDefault(); gotoSection(a.dataset.section); }));
+document.getElementById('menu-toggle').onclick=()=>document.getElementById('sidebar').classList.toggle('show');
+document.getElementById('fab').onclick=()=>{ const menu=document.getElementById('fab-menu'); menu.style.display=menu.style.display==='flex'?'none':'flex'; };
+const SAYFA_BASI = () => Number(state.ayarlar.sayfaBasiKayit)||20;
+let emlakView = state.ayarlar.varsayilanGorunum || 'tablo';
+let emlakSayfa = 1;
+let emlakSirala = { alan:'olusturmaTarihi', yon:'desc' };
+function emlakEkle(payload){
+  payload.id=nextId('emlak');
+  const now=new Date().toISOString();
+  payload.olusturmaTarihi=now;
+  payload.guncellemeTarihi=now;
+  state.emlaklar.unshift(payload);
+  saveData();
+}
+function emlakGuncelle(id,payload){
+  const idx=state.emlaklar.findIndex(e=>e.id===id);
+  if(idx>-1){
+    state.emlaklar[idx]={...state.emlaklar[idx], ...payload, guncellemeTarihi:new Date().toISOString()};
+    saveData();
+  }
+}
+function emlakSil(id){
+  if(!confirm('Bu emlağı silmek istediğinize emin misiniz?')) return;
+  state.emlaklar=state.emlaklar.filter(e=>e.id!==id);
+  saveData();
+  renderEmlakList();
+  renderDashboard();
+}
+function emlakFiltrele(){
+  const arama=document.getElementById('emlak-search').value.toLowerCase();
+  const tur=document.getElementById('emlak-tur-filter').value;
+  const durum=document.querySelector('#emlak-filter-tabs .tab.active')?.dataset.durum || document.getElementById('emlak-durum-filter').value || '';
+  const fmin=Number(document.getElementById('fiyat-min').value)||0;
+  const fmax=Number(document.getElementById('fiyat-max').value)||Infinity;
+  return state.emlaklar.filter(e=>{
+    const matchArama=[e.baslik,e.il,e.ilce,e.mahalle,e.id].some(t=>(t||'').toLowerCase().includes(arama));
+    const matchTur=tur? e.ilanTuru===tur : true;
+    const matchDurum=durum? e.durum===durum : true;
+    const matchFiyat=(Number(e.fiyat)>=fmin)&&(Number(e.fiyat)<=fmax);
+    return matchArama && matchTur && matchDurum && matchFiyat;
+  });
+}
+function siralaDizi(dizi, alan, yon='asc'){
+  return [...dizi].sort((a,b)=>{
+    const va=a[alan];
+    const vb=b[alan];
+    if(va==null) return 1;
+    if(vb==null) return -1;
+    if(va>vb) return yon==='asc'?1:-1;
+    if(va<vb) return yon==='asc'?-1:1;
+    return 0;
+  });
+}
+function emlakKartHTML(e){
+  const foto=e.fotograflar?.[0]?.base64 || 'https://via.placeholder.com/600x340?text=Emlak';
+  return `
+    <div class="card property-card">
+      <img src="${foto}" alt="${e.baslik}" />
+      <div class="flex" style="justify-content: space-between; align-items:center; margin-top: 8px;">
+        <div class="pill">${e.ilanTuru?.toUpperCase() || ''} • ${e.emlakTuru || ''}</div>
+        <span class="status ${e.durum}">${(e.durum || '').toUpperCase()}</span>
+      </div>
+      <h3>${e.baslik}</h3>
+      <div class="muted">📍 ${[e.il,e.ilce,e.mahalle].filter(Boolean).join(', ')}</div>
+      <div class="flex" style="gap: 8px; flex-wrap: wrap; margin: 8px 0;">
+        <div class="badge">💰 ${formatPara(e.fiyat, e.paraBirimi)}</div>
+        <div class="badge">📐 ${e.netM2 || '-'} m²</div>
+        <div class="badge">🛏️ ${e.odaSayisi || '-'}</div>
+        <div class="badge">🏢 ${e.bulunduguKat || '-'} . Kat</div>
+      </div>
+      <div class="list-actions">
+        <button class="btn btn-secondary" onclick="emlakDetay('${e.id}')">👁️ Detay</button>
+        <button class="btn btn-warning" onclick="acEmlakForm('${e.id}')">✏️ Düzenle</button>
+        <button class="btn btn-success" onclick="whatsappPaylas('${e.id}')">📱 Paylaş</button>
+        <button class="btn btn-danger" onclick="emlakSil('${e.id}')">🗑️ Sil</button>
+      </div>
+    </div>`;
+}
+function whatsappPaylas(id){
+  const e=state.emlaklar.find(x=>x.id===id);
+  if(!e) return;
+  const text=encodeURIComponent(`${e.baslik} - ${formatPara(e.fiyat,e.paraBirimi)}
+${[e.il,e.ilce].filter(Boolean).join(', ')}
+İlan No: ${e.id}`);
+  window.open(`https://wa.me/?text=${text}`,'_blank');
+}
+function emlakDetay(id){
+  const e=state.emlaklar.find(x=>x.id===id);
+  if(!e) return;
+  const html = `
+    <div class="flex" style="justify-content: space-between; align-items:center;">
+      <h2>${e.baslik}</h2>
+      <button class="btn btn-ghost" onclick="closeModal()">✕</button>
+    </div>
+    <div class="badge">${e.id}</div>
+    <p class="muted">${[e.il,e.ilce,e.mahalle].filter(Boolean).join(', ')} • ${tarihYaz(e.olusturmaTarihi)}</p>
+    <div class="grid cards-4" style="grid-template-columns: repeat(auto-fit, minmax(220px,1fr));">
+      <div class="card"><div class="muted">Fiyat</div><strong>${formatPara(e.fiyat,e.paraBirimi)}</strong></div>
+      <div class="card"><div class="muted">Oda / m²</div><strong>${e.odaSayisi || '-'} / ${e.netM2 || '-'} m²</strong></div>
+      <div class="card"><div class="muted">Durum</div><span class="status ${e.durum}">${e.durum}</span></div>
+      <div class="card"><div class="muted">İlan Türü</div><strong>${e.ilanTuru}</strong></div>
+    </div>
+    <h3>Özellikler</h3>
+    <div>${(e.ozellikler||[]).map(o=>`<span class="chip">${o}</span>`).join('') || '<div class="muted">Özellik ekli değil</div>'}</div>
+    <h3 style="margin-top:12px;">Açıklama</h3>
+    <p>${e.aciklama || '-'}</p>
+    <div class="flex" style="justify-content:flex-end; gap:8px; margin-top: 12px;">
+      <button class="btn btn-warning" onclick="acEmlakForm('${e.id}')">Düzenle</button>
+      <button class="btn btn-danger" onclick="emlakSil('${e.id}')">Sil</button>
+      <button class="btn btn-primary" onclick="window.print()">Yazdır</button>
+    </div>`;
+  openModal(html);
+}
+function renderEmlakList(){
+  const filtreli=siralaDizi(emlakFiltrele(), emlakSirala.alan, emlakSirala.yon);
+  const sayfaBasi=SAYFA_BASI();
+  const toplamSayfa=Math.max(1, Math.ceil(filtreli.length/sayfaBasi));
+  emlakSayfa=Math.min(emlakSayfa, toplamSayfa);
+  const start=(emlakSayfa-1)*sayfaBasi;
+  const parca=filtreli.slice(start, start+sayfaBasi);
+  const tableWrapper=document.getElementById('emlak-table-wrapper');
+  const cardWrapper=document.getElementById('emlak-card-wrapper');
+  tableWrapper.style.display=emlakView==='tablo'?'block':'none';
+  cardWrapper.style.display=emlakView==='kart'?'grid':'none';
+  if(emlakView==='tablo'){
+    const rows = parca.map(e=>`<tr>
+      <td>${e.id}</td>
+      <td>${e.baslik}</td>
+      <td>${e.ilanTuru}</td>
+      <td>${formatPara(e.fiyat,e.paraBirimi)}</td>
+      <td>${[e.il,e.ilce].filter(Boolean).join(', ')}</td>
+      <td><span class="status ${e.durum}">${e.durum}</span></td>
+      <td class="list-actions">
+        <button class="btn btn-ghost" onclick="emlakDetay('${e.id}')">Detay</button>
+        <button class="btn btn-warning" onclick="acEmlakForm('${e.id}')">Düzenle</button>
+        <button class="btn btn-danger" onclick="emlakSil('${e.id}')">Sil</button>
+      </td>
+    </tr>`).join('');
+    tableWrapper.innerHTML = parca.length ? `
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th data-alan="id">İlan No</th>
+              <th data-alan="baslik">Başlık</th>
+              <th data-alan="ilanTuru">İlan Türü</th>
+              <th data-alan="fiyat">Fiyat</th>
+              <th data-alan="il">Konum</th>
+              <th data-alan="durum">Durum</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>` : '<div class="empty">Emlak bulunamadı</div>';
+    tableWrapper.querySelectorAll('th[data-alan]')?.forEach(th=>{
+      th.onclick=()=>{ emlakSirala={alan:th.dataset.alan, yon:emlakSirala.yon==='asc'?'desc':'asc'}; renderEmlakList(); };
+    });
+  } else {
+    cardWrapper.innerHTML=parca.length? parca.map(emlakKartHTML).join('') : '<div class="empty">Emlak bulunamadı</div>';
+  }
+  const pag=document.getElementById('emlak-pagination');
+  pag.innerHTML='';
+  for(let i=1;i<=toplamSayfa;i++){
+    const btn=document.createElement('button');
+    btn.textContent=i;
+    btn.classList.toggle('active', i===emlakSayfa);
+    btn.onclick=()=>{ emlakSayfa=i; renderEmlakList(); };
+    pag.appendChild(btn);
+  }
+  renderDashboard();
+}
+function acEmlakForm(id){
+  const duzenleme=!!id;
+  const data=duzenleme? state.emlaklar.find(e=>e.id===id) : {};
+  const ilOptions=state.iller.map(il=>`<option value="${il.ad}" ${data.il===il.ad?'selected':''}>${il.ad}</option>`).join('');
+  const ilceOptions=(state.iller.find(i=>i.ad===data.il)?.ilceler||[]).map(ilce=>`<option value="${ilce}" ${data.ilce===ilce?'selected':''}>${ilce}</option>`).join('');
+  const html = `
+    <div class="flex" style="justify-content: space-between; align-items:center; gap:12px;">
+      <h2>${duzenleme?'Emlak Düzenle':'Emlak Ekle'}</h2>
+      <button class="btn btn-ghost" onclick="closeModal()">✕</button>
+    </div>
+    <form id="emlak-form" onsubmit="emlakFormKaydet(event, '${id||''}')">
+      <div class="form-grid">
+        <div><label>Başlık *</label><input name="baslik" required value="${data.baslik||''}" /></div>
+        <div><label>İlan Türü</label><select name="ilanTuru">${['satilik','kiralik','devren-satilik','devren-kiralik','gunluk-kiralik'].map(v=>`<option value="${v}" ${data.ilanTuru===v?'selected':''}>${v}</option>`).join('')}</select></div>
+        <div><label>Emlak Türü</label><select name="emlakTuru">${['daire','residence','villa','mustakil','dubleks','tripleks','arsa','tarla','isyeri','dukkan','ofis','depo','fabrika','bina'].map(v=>`<option value="${v}" ${data.emlakTuru===v?'selected':''}>${v}</option>`).join('')}</select></div>
+        <div><label>Fiyat *</label><input type="number" name="fiyat" required value="${data.fiyat||''}" /></div>
+        <div><label>Para Birimi</label><select name="paraBirimi">${['TL','USD','EUR'].map(v=>`<option ${data.paraBirimi===v?'selected':''}>${v}</option>`).join('')}</select></div>
+        <div><label>Aidat</label><input type="number" name="aidat" value="${data.aidat||''}" /></div>
+        <div><label>İl</label><select name="il">${ilOptions}</select></div>
+        <div><label>İlçe</label><select name="ilce">${ilceOptions}</select></div>
+        <div><label>Mahalle</label><input name="mahalle" value="${data.mahalle||''}" /></div>
+        <div><label>Adres</label><textarea name="adres">${data.adres||''}</textarea></div>
+        <div><label>Brüt m²</label><input type="number" name="brutM2" value="${data.brutM2||''}" /></div>
+        <div><label>Net m²</label><input type="number" name="netM2" value="${data.netM2||''}" /></div>
+        <div><label>Oda Sayısı</label><select name="odaSayisi">${['1+0','1+1','2+1','2+2','3+1','3+2','4+1','4+2','5+1','5+2','6+'].map(v=>`<option value="${v}" ${data.odaSayisi===v?'selected':''}>${v}</option>`).join('')}</select></div>
+        <div><label>Banyo Sayısı</label><input type="number" name="banyoSayisi" value="${data.banyoSayisi||''}" /></div>
+        <div><label>Bulunduğu Kat</label><input type="number" name="bulunduguKat" value="${data.bulunduguKat||''}" /></div>
+        <div><label>Toplam Kat</label><input type="number" name="toplamKat" value="${data.toplamKat||''}" /></div>
+        <div><label>Bina Yaşı</label><input type="number" name="binaYasi" value="${data.binaYasi||''}" /></div>
+        <div><label>Isınma Tipi</label><select name="isitmaTipi">${['dogalgaz-kombi','merkezi','soba','klima','yerden-isitma','gunes-enerjisi'].map(v=>`<option value="${v}" ${data.isitmaTipi===v?'selected':''}>${v}</option>`).join('')}</select></div>
+        <div><label>Yapı Tipi</label><select name="yapiTipi">${['betonarme','celik','prefabrik','ahsap','yigma'].map(v=>`<option value="${v}" ${data.yapiTipi===v?'selected':''}>${v}</option>`).join('')}</select></div>
+        <div><label>Cephe</label><input name="cephe" placeholder="Kuzey, Güney" value="${(data.cephe||[]).join(', ')}" /></div>
+        <div><label>Tapu Durumu</label><select name="tapuDurumu">${['kat-mulkiyetli','kat-irtifakli','hisseli','mustakil','kooperatif'].map(v=>`<option value="${v}" ${data.tapuDurumu===v?'selected':''}>${v}</option>`).join('')}</select></div>
+        <div><label>Özellikler (virgülle)</label><input name="ozellikler" value="${(data.ozellikler||[]).join(', ')}" /></div>
+        <div><label>Video Linki</label><input name="videoLinki" type="url" value="${data.videoLinki||''}" /></div>
+        <div><label>Sanal Tur</label><input name="sanalTurLinki" type="url" value="${data.sanalTurLinki||''}" /></div>
+        <div><label>Açıklama</label><textarea name="aciklama">${data.aciklama||''}</textarea></div>
+        <div><label>Mülk Sahibi</label><select name="mulkSahibiId">${[''].concat(state.musteriler.map(m=>m.id+' - '+m.adSoyad)).map(opt=>{ const val=opt.split(' - ')[0]||''; const text=opt||'Seçin'; return `<option value="${val}" ${data.mulkSahibiId===val?'selected':''}>${text}</option>`; }).join('')}</select></div>
+        <div><label>Durum</label><select name="durum">${['aktif','opsiyonlu','satildi','kiralandi','pasif'].map(v=>`<option value="${v}" ${data.durum===v?'selected':''}>${v}</option>`).join('')}</select></div>
+        <div><label>Opsiyon Bitiş Tarihi</label><input type="date" name="opsiyonBitisTarihi" value="${data.opsiyonBitisTarihi||''}" /></div>
+        <div><label>Fotoğraflar (max 5)</label><input type="file" accept="image/*" multiple onchange="handleFotoUpload(event)" /></div>
+      </div>
+      <input type="hidden" name="fotograflar" value='${JSON.stringify(data.fotograflar||[])}' />
+      <div class="flex" style="justify-content:flex-end; gap:8px; margin-top:10px;">
+        <button type="button" class="btn btn-secondary" onclick="closeModal()">İptal</button>
+        <button type="submit" class="btn btn-primary">Kaydet</button>
+      </div>
+    </form>`;
+  openModal(html);
+  const ilSelect=document.querySelector('#modal select[name="il"]');
+  ilSelect.addEventListener('change',e=>{
+    const sec=state.iller.find(i=>i.ad===e.target.value);
+    const ilceSel=document.querySelector('#modal select[name="ilce"]');
+    ilceSel.innerHTML=(sec?.ilceler||[]).map(ilce=>`<option value="${ilce}">${ilce}</option>`).join('');
+  });
+}
+async function handleFotoUpload(e){
+  const input=e.target;
+  const files=Array.from(input.files).slice(0,5);
+  const mevcut=JSON.parse(input.form.fotograflar.value||'[]');
+  for(const file of files){
+    if(file.size>500*1024){ bildirimGoster('Fotoğraf 500KB sınırını aşıyor','uyari'); continue; }
+    const base64=await fileToBase64(file);
+    mevcut.push({id:'foto-'+Date.now()+Math.random(), base64, anaFoto:mevcut.length===0});
+  }
+  input.form.fotograflar.value=JSON.stringify(mevcut.slice(0,5));
+  bildirimGoster('Fotoğraf eklendi');
+}
+function fileToBase64(file){
+  return new Promise((resolve,reject)=>{ const reader=new FileReader(); reader.onload=()=>resolve(reader.result); reader.onerror=reject; reader.readAsDataURL(file); });
+}
+function emlakFormKaydet(ev, id){
+  ev.preventDefault();
+  const fd=new FormData(ev.target);
+  const obj=Object.fromEntries(fd.entries());
+  obj.fiyat=Number(obj.fiyat);
+  obj.aidat=Number(obj.aidat||0);
+  obj.brutM2=Number(obj.brutM2||0);
+  obj.netM2=Number(obj.netM2||0);
+  obj.banyoSayisi=Number(obj.banyoSayisi||0);
+  obj.bulunduguKat=Number(obj.bulunduguKat||0);
+  obj.toplamKat=Number(obj.toplamKat||0);
+  obj.binaYasi=Number(obj.binaYasi||0);
+  obj.cephe=obj.cephe? obj.cephe.split(',').map(s=>s.trim()).filter(Boolean):[];
+  obj.ozellikler=obj.ozellikler? obj.ozellikler.split(',').map(s=>s.trim()).filter(Boolean):[];
+  obj.fotograflar=obj.fotograflar? JSON.parse(obj.fotograflar):[];
+  obj.goruntulenme=obj.goruntulenme||0;
+  obj.favoriSayisi=obj.favoriSayisi||0;
+  if(id) emlakGuncelle(id,obj); else emlakEkle(obj);
+  closeModal();
+  renderEmlakList();
+  renderDashboard();
+  bildirimGoster('Emlak kaydedildi');
+}
+// Müşteri işlemleri
+function musteriEkle(obj){ obj.id=nextId('musteri'); const now=new Date().toISOString(); obj.olusturmaTarihi=now; obj.guncellemeTarihi=now; state.musteriler.unshift(obj); saveData(); }
+function musteriGuncelle(id,obj){ const idx=state.musteriler.findIndex(m=>m.id===id); if(idx>-1){ state.musteriler[idx]={...state.musteriler[idx], ...obj, guncellemeTarihi:new Date().toISOString()}; saveData(); }}
+function musteriSil(id){ if(!confirm('Müşteriyi silmek istiyor musunuz?')) return; state.musteriler=state.musteriler.filter(m=>m.id!==id); saveData(); renderMusteriList(); }
+function renderMusteriList(){
+  const arama=document.getElementById('musteri-search').value.toLowerCase();
+  const durum=document.getElementById('musteri-durum-filter').value;
+  const kaynak=document.getElementById('musteri-kaynak-filter').value;
+  const filt=state.musteriler.filter(m=>{
+    const match=[m.adSoyad,m.telefon1,m.email].some(t=>(t||'').toLowerCase().includes(arama));
+    const mdurum=durum? m.durum===durum : true;
+    const mkaynak=kaynak? m.kaynak===kaynak : true;
+    return match && mdurum && mkaynak;
+  });
+  const rows = filt.map(m=>`<tr>
+    <td>${m.id}</td><td>${m.adSoyad}</td><td>${m.telefon1}</td><td>${m.durum}</td><td>${m.kaynak}</td>
+    <td class="list-actions">
+      <button class="btn btn-ghost" onclick="musteriDetay('${m.id}')">Detay</button>
+      <button class="btn btn-warning" onclick="acMusteriForm('${m.id}')">Düzenle</button>
+      <button class="btn btn-danger" onclick="musteriSil('${m.id}')">Sil</button>
+    </td>
+  </tr>`).join('');
+  const html=filt.length? `<table><thead><tr><th>No</th><th>Ad Soyad</th><th>Telefon</th><th>Durum</th><th>Kaynak</th><th></th></tr></thead><tbody>${rows}</tbody></table>` : '<div class="empty">Müşteri bulunamadı</div>';
+  document.getElementById('musteri-list').innerHTML=html;
+}
+function musteriDetay(id){
+  const m=state.musteriler.find(x=>x.id===id);
+  if(!m) return;
+  const emlaklar=state.emlaklar.filter(e=>e.mulkSahibiId===id);
+  const html=`<div class="flex" style="justify-content: space-between; align-items:center;"><h2>${m.adSoyad}</h2><button class="btn btn-ghost" onclick="closeModal()">✕</button></div>
+  <div class="badge">${m.id}</div>
+  <p class="muted">${m.telefon1} • ${m.email||''}</p>
+  <h3>Tercihler</h3>
+  <p>Bütçe: ${formatPara(m.aramaKriterleri?.butceMin||0)} - ${formatPara(m.aramaKriterleri?.butceMax||0)}</p>
+  <p>Türler: ${(m.aramaKriterleri?.emlakTurleri||[]).join(', ')||'-'}</p>
+  <h3>İlgili Emlaklar</h3>
+  <div>${emlaklar.map(e=>`<span class="chip">${e.id} ${e.baslik}</span>`).join('') || 'Yok'}</div>
+  <div class="flex" style="justify-content:flex-end; gap:8px; margin-top: 12px;">
+    <button class="btn btn-warning" onclick="acMusteriForm('${m.id}')">Düzenle</button>
+    <button class="btn btn-danger" onclick="musteriSil('${m.id}')">Sil</button>
+  </div>`;
+  openModal(html);
+}
+function acMusteriForm(id){
+  const duzenleme=!!id;
+  const data=duzenleme? state.musteriler.find(m=>m.id===id) : {};
+  const html=`<div class="flex" style="justify-content: space-between; align-items:center; gap:12px;"><h2>${duzenleme?'Müşteri Düzenle':'Müşteri Ekle'}</h2><button class="btn btn-ghost" onclick="closeModal()">✕</button></div>
+    <form id="musteri-form" onsubmit="musteriFormKaydet(event, '${id||''}')">
+      <div class="form-grid">
+        <div><label>Ad Soyad *</label><input name="adSoyad" required value="${data.adSoyad||''}" /></div>
+        <div><label>TC Kimlik No</label><input name="tcKimlikNo" value="${data.tcKimlikNo||''}" maxlength="11" /></div>
+        <div><label>Telefon 1 *</label><input name="telefon1" required value="${data.telefon1||''}" /></div>
+        <div><label>Telefon 2</label><input name="telefon2" value="${data.telefon2||''}" /></div>
+        <div><label>E-posta</label><input type="email" name="email" value="${data.email||''}" /></div>
+        <div><label>Adres</label><textarea name="adres">${data.adres||''}</textarea></div>
+        <div><label>Durum</label><select name="durum">${['aktif-ariyor','acil','beklemede','anlasma-saglandi','iptal'].map(v=>`<option value="${v}" ${data.durum===v?'selected':''}>${v}</option>`).join('')}</select></div>
+        <div><label>Kaynak</label><select name="kaynak">${['referans','internet','sosyal-medya','tabela','mevcut-musteri'].map(v=>`<option value="${v}" ${data.kaynak===v?'selected':''}>${v}</option>`).join('')}</select></div>
+        <div><label>Müşteri Türü</label><input name="musteriTuru" placeholder="alici, yatirimci" value="${(data.musteriTuru||[]).join(', ')}" /></div>
+        <div><label>İletişim Tercihi</label><input name="iletisimTercihi" placeholder="telefon, whatsapp" value="${(data.iletisimTercihi||[]).join(', ')}" /></div>
+        <div><label>Aranan Emlak Türü</label><input name="emlakTurleri" placeholder="daire, villa" value="${(data.aramaKriterleri?.emlakTurleri||[]).join(', ')}" /></div>
+        <div><label>Bütçe Min</label><input type="number" name="butceMin" value="${data.aramaKriterleri?.butceMin||''}" /></div>
+        <div><label>Bütçe Max</label><input type="number" name="butceMax" value="${data.aramaKriterleri?.butceMax||''}" /></div>
+        <div><label>Tercih Edilen İl/İlçeler</label><input name="tercihEdilenBolgeler" value="${data.aramaKriterleri?.tercihEdilenBolgeler||''}" /></div>
+        <div><label>Minimum Oda Sayısı</label><input name="minOdaSayisi" value="${data.aramaKriterleri?.minOdaSayisi||''}" /></div>
+        <div><label>Minimum m²</label><input type="number" name="minM2" value="${data.aramaKriterleri?.minM2||''}" /></div>
+        <div><label>İstenen Özellikler</label><input name="istenilenOzellikler" value="${(data.aramaKriterleri?.istenilenOzellikler||[]).join(', ')}" /></div>
+        <div style="grid-column: span 2;"><label>Notlar</label><textarea name="notlar">${data.notlar||''}</textarea></div>
+      </div>
+      <div class="flex" style="justify-content:flex-end; gap:8px; margin-top:10px;">
+        <button type="button" class="btn btn-secondary" onclick="closeModal()">İptal</button>
+        <button type="submit" class="btn btn-primary">Kaydet</button>
+      </div>
+    </form>`;
+  openModal(html);
+}
+function musteriFormKaydet(ev,id){
+  ev.preventDefault();
+  const fd=new FormData(ev.target);
+  const obj=Object.fromEntries(fd.entries());
+  obj.musteriTuru=obj.musteriTuru? obj.musteriTuru.split(',').map(s=>s.trim()).filter(Boolean):[];
+  obj.iletisimTercihi=obj.iletisimTercihi? obj.iletisimTercihi.split(',').map(s=>s.trim()).filter(Boolean):[];
+  obj.aramaKriterleri={
+    emlakTurleri: obj.emlakTurleri? obj.emlakTurleri.split(',').map(s=>s.trim()).filter(Boolean):[],
+    butceMin:Number(obj.butceMin||0),
+    butceMax:Number(obj.butceMax||0),
+    tercihEdilenBolgeler: obj.tercihEdilenBolgeler||'',
+    minOdaSayisi: obj.minOdaSayisi||'',
+    minM2:Number(obj.minM2||0),
+    istenilenOzellikler: obj.istenilenOzellikler? obj.istenilenOzellikler.split(',').map(s=>s.trim()).filter(Boolean):[]
+  };
+  if(id) musteriGuncelle(id,obj); else musteriEkle(obj);
+  closeModal();
+  renderMusteriList();
+  bildirimGoster('Müşteri kaydedildi');
+}
+// Randevu
+function randevuEkle(obj){ obj.id=nextId('randevu'); obj.olusturmaTarihi=new Date().toISOString(); state.randevular.unshift(obj); saveData(); }
+function randevuGuncelle(id,obj){ const idx=state.randevular.findIndex(r=>r.id===id); if(idx>-1){ state.randevular[idx]={...state.randevular[idx], ...obj}; saveData(); }}
+function randevuSil(id){ if(!confirm('Randevu silinsin mi?')) return; state.randevular=state.randevular.filter(r=>r.id!==id); saveData(); renderRandevuList(); renderDashboard(); }
+function renderRandevuList(){
+  const liste=state.randevular.sort((a,b)=> (a.tarih||'').localeCompare(b.tarih||''));
+  const html=liste.length? `<table><thead><tr><th>No</th><th>Tarih</th><th>Saat</th><th>Müşteri</th><th>Emlak</th><th>Durum</th><th></th></tr></thead><tbody>
+    ${liste.map(r=>`<tr><td>${r.id}</td><td>${r.tarih}</td><td>${r.baslangicSaati}</td><td>${r.musteriId||'-'}</td><td>${r.emlakId||'-'}</td><td>${r.durum||'planlandi'}</td><td class="list-actions"><button class="btn btn-ghost" onclick="randevuDetay('${r.id}')">Detay</button><button class="btn btn-warning" onclick="acRandevuForm('${r.id}')">Düzenle</button><button class="btn btn-danger" onclick="randevuSil('${r.id}')">Sil</button></td></tr>`).join('')}
+  </tbody></table>` : '<div class="empty">Randevu yok</div>';
+  document.getElementById('randevu-list').innerHTML=html;
+}
+function randevuDetay(id){
+  const r=state.randevular.find(x=>x.id===id);
+  if(!r) return;
+  const html=`<div class="flex" style="justify-content: space-between; align-items:center;"><h2>Randevu ${r.id}</h2><button class="btn btn-ghost" onclick="closeModal()">✕</button></div><p>${r.tarih} ${r.baslangicSaati}-${r.bitisSaati||''}</p><p>Müşteri: ${r.musteriId||'-'} • Emlak: ${r.emlakId||'-'}</p><p>${r.notlar||''}</p><div class="flex" style="justify-content:flex-end; gap:8px;"><button class="btn btn-warning" onclick="acRandevuForm('${r.id}')">Düzenle</button><button class="btn btn-danger" onclick="randevuSil('${r.id}')">Sil</button></div>`;
+  openModal(html);
+}
+function acRandevuForm(id){
+  const duzenleme=!!id;
+  const data=duzenleme? state.randevular.find(r=>r.id===id):{};
+  const html=`<div class="flex" style="justify-content: space-between; align-items:center; gap:12px;"><h2>${duzenleme?'Randevu Düzenle':'Randevu Ekle'}</h2><button class="btn btn-ghost" onclick="closeModal()">✕</button></div>
+    <form id="randevu-form" onsubmit="randevuFormKaydet(event,'${id||''}')">
+      <div class="form-grid">
+        <div><label>Tarih *</label><input type="date" name="tarih" required value="${data.tarih||''}" /></div>
+        <div><label>Saat *</label><input type="time" name="baslangicSaati" required value="${data.baslangicSaati||''}" /></div>
+        <div><label>Bitiş</label><input type="time" name="bitisSaati" value="${data.bitisSaati||''}" /></div>
+        <div><label>Randevu Türü</label><select name="randevuTuru">${['emlak-gezisi','ofis-gorusmesi','telefon-gorusmesi','online-gorusme','sozlesme-imza','tapu-islemi','ekspertiz'].map(v=>`<option value="${v}" ${data.randevuTuru===v?'selected':''}>${v}</option>`).join('')}</select></div>
+        <div><label>Müşteri</label><select name="musteriId">${state.musteriler.map(m=>`<option value="${m.id}" ${data.musteriId===m.id?'selected':''}>${m.id} - ${m.adSoyad}</option>`).join('')}</select></div>
+        <div><label>İlgili Emlak</label><select name="emlakId"><option value="">Yok</option>${state.emlaklar.map(e=>`<option value="${e.id}" ${data.emlakId===e.id?'selected':''}>${e.id} - ${e.baslik}</option>`).join('')}</select></div>
+        <div><label>Konum/Adres</label><input name="konum" value="${data.konum||''}" /></div>
+        <div style="grid-column: span 2;"><label>Notlar</label><textarea name="notlar">${data.notlar||''}</textarea></div>
+        <div><label>Durum</label><select name="durum">${['planlandi','tamamlandi','iptal-edildi','ertelendi'].map(v=>`<option value="${v}" ${data.durum===v?'selected':''}>${v}</option>`).join('')}</select></div>
+      </div>
+      <div class="flex" style="justify-content:flex-end; gap:8px; margin-top:10px;">
+        <button type="button" class="btn btn-secondary" onclick="closeModal()">İptal</button>
+        <button type="submit" class="btn btn-primary">Kaydet</button>
+      </div>
+    </form>`;
+  openModal(html);
+}
+function randevuFormKaydet(ev,id){
+  ev.preventDefault();
+  const fd=new FormData(ev.target);
+  const obj=Object.fromEntries(fd.entries());
+  if(id) randevuGuncelle(id,obj); else randevuEkle(obj);
+  closeModal();
+  renderRandevuList();
+  renderDashboard();
+  bildirimGoster('Randevu kaydedildi');
+}
+// Görevler
+function gorevEkle(obj){ obj.id=nextId('gorev'); obj.olusturmaTarihi=new Date().toISOString(); state.gorevler.unshift(obj); saveData(); }
+function gorevGuncelle(id,obj){ const idx=state.gorevler.findIndex(g=>g.id===id); if(idx>-1){ state.gorevler[idx]={...state.gorevler[idx], ...obj}; saveData(); }}
+function renderGorevKanban(){
+  const kolonlar={ 'yapilacak':[], 'devam-ediyor':[], 'tamamlandi':[] };
+  state.gorevler.forEach(g=>{ (kolonlar[g.durum]||kolonlar['yapilacak']).push(g); });
+  const wrapper=document.getElementById('gorev-kanban');
+  wrapper.innerHTML='';
+  const basliklar={ 'yapilacak':'Yapılacak', 'devam-ediyor':'Devam Ediyor', 'tamamlandi':'Tamamlandı' };
+  Object.keys(kolonlar).forEach(key=>{
+    const col=document.createElement('div');
+    col.className='kanban-column';
+    col.innerHTML=`<h3>${basliklar[key]}</h3>`;
+    const items=kolonlar[key].map(g=>`<div class="card" style="margin-bottom:8px;">
+      <div class="flex" style="justify-content: space-between; align-items:center;">
+        <strong>${g.baslik}</strong>
+        <span class="tag ${g.oncelik}">${g.oncelik}</span>
+      </div>
+      <p class="muted">${g.aciklama||''}</p>
+      <p class="muted">${g.bitisTarihi||''}</p>
+      <div class="list-actions">
+        <button class="btn btn-warning" onclick="acGorevForm('${g.id}')">Düzenle</button>
+      </div>
+    </div>`).join('');
+    col.innerHTML += items || '<div class="empty">Görev yok</div>';
+    wrapper.appendChild(col);
+  });
+}
+function acGorevForm(id){
+  const duzenleme=!!id;
+  const data=duzenleme? state.gorevler.find(g=>g.id===id):{};
+  const html=`<div class="flex" style="justify-content: space-between; align-items:center; gap:12px;"><h2>${duzenleme?'Görev Düzenle':'Görev Ekle'}</h2><button class="btn btn-ghost" onclick="closeModal()">✕</button></div>
+    <form id="gorev-form" onsubmit="gorevFormKaydet(event,'${id||''}')">
+      <div class="form-grid">
+        <div><label>Görev Başlığı *</label><input name="baslik" required value="${data.baslik||''}" /></div>
+        <div><label>Açıklama</label><textarea name="aciklama">${data.aciklama||''}</textarea></div>
+        <div><label>Öncelik</label><select name="oncelik">${['acil','yuksek','normal','dusuk'].map(v=>`<option value="${v}" ${data.oncelik===v?'selected':''}>${v}</option>`).join('')}</select></div>
+        <div><label>Bitiş Tarihi</label><input type="date" name="bitisTarihi" value="${data.bitisTarihi||''}" /></div>
+        <div><label>İlgili Müşteri</label><select name="musteriId"><option value="">Seçin</option>${state.musteriler.map(m=>`<option value="${m.id}" ${data.musteriId===m.id?'selected':''}>${m.id} - ${m.adSoyad}</option>`).join('')}</select></div>
+        <div><label>İlgili Emlak</label><select name="emlakId"><option value="">Seçin</option>${state.emlaklar.map(e=>`<option value="${e.id}" ${data.emlakId===e.id?'selected':''}>${e.id} - ${e.baslik}</option>`).join('')}</select></div>
+        <div><label>Durum</label><select name="durum">${['yapilacak','devam-ediyor','tamamlandi'].map(v=>`<option value="${v}" ${data.durum===v?'selected':''}>${v}</option>`).join('')}</select></div>
+      </div>
+      <div class="flex" style="justify-content:flex-end; gap:8px; margin-top:10px;">
+        <button type="button" class="btn btn-secondary" onclick="closeModal()">İptal</button>
+        <button type="submit" class="btn btn-primary">Kaydet</button>
+      </div>
+    </form>`;
+  openModal(html);
+}
+function gorevFormKaydet(ev,id){
+  ev.preventDefault();
+  const fd=new FormData(ev.target);
+  const obj=Object.fromEntries(fd.entries());
+  if(id) gorevGuncelle(id,obj); else gorevEkle(obj);
+  closeModal();
+  renderGorevKanban();
+  bildirimGoster('Görev kaydedildi');
+}
+// Finans
+function islemEkle(obj){ obj.id=nextId('islem'); obj.olusturmaTarihi=new Date().toISOString(); state.islemler.unshift(obj); saveData(); }
+function islemGuncelle(id,obj){ const idx=state.islemler.findIndex(i=>i.id===id); if(idx>-1){ state.islemler[idx]={...state.islemler[idx], ...obj}; saveData(); }}
+function acIslemForm(id){
+  const duzenleme=!!id;
+  const data=duzenleme? state.islemler.find(i=>i.id===id):{};
+  const html=`<div class="flex" style="justify-content: space-between; align-items:center; gap:12px;"><h2>${duzenleme?'İşlem Düzenle':'İşlem Ekle'}</h2><button class="btn btn-ghost" onclick="closeModal()">✕</button></div>
+    <form id="islem-form" onsubmit="islemFormKaydet(event,'${id||''}')">
+      <div class="form-grid">
+        <div><label>İşlem Türü</label><select name="islemTuru">${['satis','kiralama'].map(v=>`<option value="${v}" ${data.islemTuru===v?'selected':''}>${v}</option>`).join('')}</select></div>
+        <div><label>Tarih</label><input type="date" name="tarih" value="${data.tarih||''}" /></div>
+        <div><label>İlgili Emlak</label><select name="emlakId">${state.emlaklar.map(e=>`<option value="${e.id}" ${data.emlakId===e.id?'selected':''}>${e.id} - ${e.baslik}</option>`).join('')}</select></div>
+        <div><label>Müşteri</label><select name="musteriId">${state.musteriler.map(m=>`<option value="${m.id}" ${data.musteriId===m.id?'selected':''}>${m.id} - ${m.adSoyad}</option>`).join('')}</select></div>
+        <div><label>Mülk Sahibi</label><select name="mulkSahibiId"><option value="">Yok</option>${state.musteriler.map(m=>`<option value="${m.id}" ${data.mulkSahibiId===m.id?'selected':''}>${m.id} - ${m.adSoyad}</option>`).join('')}</select></div>
+        <div><label>İşlem Tutarı</label><input type="number" name="islemTutari" value="${data.islemTutari||''}" /></div>
+        <div><label>Para Birimi</label><select name="paraBirimi">${['TL','USD','EUR'].map(v=>`<option ${data.paraBirimi===v?'selected':''}>${v}</option>`).join('')}</select></div>
+        <div><label>Komisyon Oranı</label><input type="number" step="0.1" name="komisyonOrani" value="${data.komisyonOrani||state.ayarlar.satisKomisyonOrani}" /></div>
+        <div><label>Komisyon Tutarı</label><input type="number" name="komisyonTutari" value="${data.komisyonTutari||''}" /></div>
+        <div><label>Ödeme Durumu</label><select name="odemeDurumu">${['tahsil-edildi','beklemede','kismi-odeme'].map(v=>`<option value="${v}" ${data.odemeDurumu===v?'selected':''}>${v}</option>`).join('')}</select></div>
+        <div><label>Tahsil Edilen</label><input type="number" name="tahsilEdilenTutar" value="${data.tahsilEdilenTutar||0}" /></div>
+        <div style="grid-column: span 2;"><label>Notlar</label><textarea name="notlar">${data.notlar||''}</textarea></div>
+      </div>
+      <div class="flex" style="justify-content:flex-end; gap:8px; margin-top:10px;">
+        <button type="button" class="btn btn-secondary" onclick="closeModal()">İptal</button>
+        <button type="submit" class="btn btn-primary">Kaydet</button>
+      </div>
+    </form>`;
+  openModal(html);
+}
+function islemFormKaydet(ev,id){
+  ev.preventDefault();
+  const fd=new FormData(ev.target);
+  const obj=Object.fromEntries(fd.entries());
+  obj.islemTutari=Number(obj.islemTutari||0);
+  obj.komisyonOrani=Number(obj.komisyonOrani||state.ayarlar.satisKomisyonOrani);
+  obj.komisyonTutari=obj.komisyonTutari? Number(obj.komisyonTutari): obj.islemTutari * (obj.komisyonOrani/100);
+  obj.tahsilEdilenTutar=Number(obj.tahsilEdilenTutar||0);
+  if(id) islemGuncelle(id,obj); else islemEkle(obj);
+  closeModal();
+  renderFinans();
+  renderDashboard();
+  bildirimGoster('İşlem kaydedildi');
+}
+function renderFinans(){
+  const buAy = state.islemler.filter(i=> (i.tarih||'').startsWith(new Date().toISOString().slice(0,7)) );
+  const toplam=buAy.reduce((sum,i)=>sum+Number(i.islemTutari||0),0);
+  const komisyon=buAy.reduce((sum,i)=>sum+Number(i.komisyonTutari||0),0);
+  const bekleyen=state.islemler.filter(i=>i.odemeDurumu!=='tahsil-edildi').reduce((s,i)=>s+Number(i.komisyonTutari||0),0);
+  const kart=document.getElementById('finans-kart');
+  kart.innerHTML=`<div class="card"><h3>Bu Ay İşlem</h3><strong>${formatPara(toplam,state.ayarlar.paraBirimiVarsayilan)}</strong></div>
+  <div class="card"><h3>Bu Ay Komisyon</h3><strong>${formatPara(komisyon,state.ayarlar.paraBirimiVarsayilan)}</strong></div>
+  <div class="card"><h3>Bekleyen Komisyon</h3><strong>${formatPara(bekleyen,state.ayarlar.paraBirimiVarsayilan)}</strong></div>
+  <div class="card"><h3>Toplam İşlem</h3><strong>${formatPara(state.islemler.reduce((s,i)=>s+Number(i.islemTutari||0),0),state.ayarlar.paraBirimiVarsayilan)}</strong></div>`;
+  const rows=state.islemler.map(i=>`<tr><td>${i.id}</td><td>${i.tarih||''}</td><td>${i.emlakId||''}</td><td>${i.musteriId||''}</td><td>${formatPara(i.islemTutari,i.paraBirimi||'TL')}</td><td>${formatPara(i.komisyonTutari,i.paraBirimi||'TL')}</td><td>${i.odemeDurumu||''}</td><td class="list-actions"><button class="btn btn-warning" onclick="acIslemForm('${i.id}')">Düzenle</button></td></tr>`).join('');
+  document.getElementById('islem-list').innerHTML = state.islemler.length ? `<table><thead><tr><th>No</th><th>Tarih</th><th>Emlak</th><th>Müşteri</th><th>Tutar</th><th>Komisyon</th><th>Ödeme</th><th></th></tr></thead><tbody>${rows}</tbody></table>` : '<div class="empty">İşlem yok</div>';
+}
+// Raporlar
+function renderRaporlar(){
+  const toplamEmlak=state.emlaklar.length;
+  const durumDagilim=state.emlaklar.reduce((acc,e)=>{ acc[e.durum]= (acc[e.durum]||0)+1; return acc; },{});
+  document.getElementById('portfoy-rapor').innerHTML=`Toplam: ${toplamEmlak}<br/>Aktif: ${durumDagilim['aktif']||0}<br/>Satıldı: ${durumDagilim['satildi']||0}<br/>Kiralandı: ${durumDagilim['kiralandi']||0}`;
+  const satisSayisi=state.islemler.filter(i=>i.islemTuru==='satis').length;
+  const kiralamaSayisi=state.islemler.filter(i=>i.islemTuru==='kiralama').length;
+  const ciro=state.islemler.reduce((s,i)=>s+Number(i.islemTutari||0),0);
+  const komTop=state.islemler.reduce((s,i)=>s+Number(i.komisyonTutari||0),0);
+  document.getElementById('satis-rapor').innerHTML=`Satış: ${satisSayisi} <br/>Kiralama: ${kiralamaSayisi}<br/>Toplam Ciro: ${formatPara(ciro,state.ayarlar.paraBirimiVarsayilan)}<br/>Komisyon: ${formatPara(komTop,state.ayarlar.paraBirimiVarsayilan)}`;
+  const musteriToplam=state.musteriler.length;
+  const musteriTurDagilim=state.musteriler.reduce((acc,m)=>{ (m.musteriTuru||[]).forEach(t=> acc[t]=(acc[t]||0)+1); return acc; },{});
+  document.getElementById('musteri-rapor').innerHTML=`Toplam: ${musteriToplam}<br/>Alıcı: ${musteriTurDagilim['alici']||0}<br/>Satıcı: ${musteriTurDagilim['satici']||0}`;
+}
+// Yedekleme
+function yedekAl(){
+  const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='emlak-takip-yedek.json'; a.click(); URL.revokeObjectURL(url);
+  state.ayarlar.sonYedeklemeTarihi=new Date().toISOString(); saveData();
+}
+function yedekYukle(ev){
+  const file=ev.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=()=>{ try{ state=JSON.parse(reader.result); saveData(); initApp(); bildirimGoster('Yedek yüklendi'); } catch(e){ bildirimGoster('Yedek okunamadı','hata'); } };
+  reader.readAsText(file);
+}
+function tumVerileriSil(){ if(confirm('Tüm veriler silinsin mi?') && confirm('Emin misiniz?')){ state=JSON.parse(JSON.stringify(DEFAULT_DATA)); saveData(); initApp(); }}
+function ayarKaydet(ev){ ev.preventDefault(); const fd=new FormData(ev.target); state.ayarlar={...state.ayarlar, ...Object.fromEntries(fd.entries())}; state.ayarlar.sayfaBasiKayit=Number(state.ayarlar.sayfaBasiKayit)||20; saveData(); bildirimGoster('Ayarlar kaydedildi'); initTheme(); renderEmlakList(); }
+function applyAyarForm(){ const form=document.getElementById('ayar-form'); if(!form) return; Object.entries(state.ayarlar).forEach(([k,v])=>{ if(form[k]!==undefined) form[k].value=v; }); }
+// Dashboard basit kartlar
+function renderDashboard(){
+  const aktifEmlak=state.emlaklar.filter(e=>e.durum==='aktif').length;
+  const pasifEmlak=state.emlaklar.length-aktifEmlak;
+  const musteriSayisi=state.musteriler.length;
+  const buAyIslem=state.islemler.filter(i=> (i.tarih||'').startsWith(new Date().toISOString().slice(0,7)) ).length;
+  const bekleyenKom=state.islemler.filter(i=>i.odemeDurumu!=='tahsil-edildi').reduce((s,i)=>s+Number(i.komisyonTutari||0),0);
+  document.getElementById('dashboard-cards').innerHTML=`
+    <div class="card"><h3>Toplam Emlak</h3><strong>${state.emlaklar.length}</strong><p class="muted">Aktif: ${aktifEmlak} • Pasif:${pasifEmlak}</p></div>
+    <div class="card"><h3>Müşteri</h3><strong>${musteriSayisi}</strong></div>
+    <div class="card"><h3>Bu Ay İşlem</h3><strong>${buAyIslem}</strong></div>
+    <div class="card"><h3>Bekleyen Komisyon</h3><strong>${formatPara(bekleyenKom,state.ayarlar.paraBirimiVarsayilan)}</strong></div>`;
+  const son = state.emlaklar.slice(0,5).map(e=>`<div class="card" style="margin-bottom:8px;"><div class="flex" style="justify-content: space-between;">
+    <div>
+      <strong>${e.baslik}</strong>
+      <div class="muted">${[e.il,e.ilce].filter(Boolean).join(', ')}</div>
+    </div>
+    <div class="badge">${formatPara(e.fiyat,e.paraBirimi)}</div>
+  </div></div>`).join('');
+  document.getElementById('son-emlaklar').innerHTML = son || '<div class="empty">Kayıt yok</div>';
+  const today=new Date().toISOString().slice(0,10);
+  const bugun=state.randevular.filter(r=>r.tarih===today).map(r=>`<div class="card" style="margin-bottom:6px;">
+    <strong>${r.baslangicSaati}</strong> - ${r.musteriId||''} (${r.randevuTuru})
+  </div>`).join('');
+  document.getElementById('bugun-randevu').innerHTML = bugun || '<div class="empty">Bugün randevu yok</div>';
+  const acil=state.gorevler.filter(g=>g.oncelik==='acil' || g.oncelik==='yuksek').map(g=>`<div class="card" style="margin-bottom:6px;"><strong>${g.baslik}</strong><div class="muted">${g.bitisTarihi||''}</div></div>`).join('');
+  document.getElementById('acil-gorev').innerHTML = acil || '<div class="empty">Acil görev yok</div>';
+  cizPasta('emlak-durum-chart', durumDagilim);
+  cizCizgi('satis-chart', state.islemler);
+}
+function cizPasta(canvasId, data){
+  const canvas=document.getElementById(canvasId);
+  if(!canvas) return;
+  const ctx=canvas.getContext('2d');
+  const total=Object.values(data).reduce((a,b)=>a+b,0)||1;
+  const colors=['#2563eb','#10b981','#f59e0b','#ef4444','#8b5cf6'];
+  let start=0; let i=0;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  Object.entries(data).forEach(([k,v])=>{
+    const angle=(v/total)*Math.PI*2;
+    ctx.beginPath();
+    ctx.moveTo(100,100);
+    ctx.fillStyle=colors[i++%colors.length];
+    ctx.arc(100,100,90,start,start+angle);
+    ctx.fill();
+    start+=angle;
+  });
+}
+function cizCizgi(canvasId, islemler){
+  const canvas=document.getElementById(canvasId);
+  if(!canvas) return;
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const aylik={};
+  islemler.forEach(i=>{ const ay=(i.tarih||'').slice(0,7); aylik[ay]=(aylik[ay]||0)+Number(i.islemTutari||0); });
+  const aylar=Object.keys(aylik).sort();
+  const max=Math.max(...Object.values(aylik),1);
+  ctx.beginPath(); ctx.strokeStyle='#2563eb'; ctx.lineWidth=3;
+  aylar.forEach((ay,idx)=>{
+    const x=20+idx*(canvas.width-40)/Math.max(aylar.length-1,1);
+    const y=180-(aylik[ay]/max)*160;
+    if(idx===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    ctx.fillText(ay, x-10, 195);
+  });
+  ctx.stroke();
+}
+function initApp(){
+  initTheme();
+  renderEmlakList();
+  renderMusteriList();
+  renderRandevuList();
+  renderGorevKanban();
+  renderFinans();
+  renderRaporlar();
+  applyAyarForm();
+}
+document.getElementById('table-view').onclick=()=>{ emlakView='tablo'; state.ayarlar.varsayilanGorunum='tablo'; saveData(); renderEmlakList(); };
+document.getElementById('card-view').onclick=()=>{ emlakView='kart'; state.ayarlar.varsayilanGorunum='kart'; saveData(); renderEmlakList(); };
+document.getElementById('emlak-filter-tabs').addEventListener('click',e=>{ if(e.target.classList.contains('tab')){ document.querySelectorAll('#emlak-filter-tabs .tab').forEach(t=>t.classList.remove('active')); e.target.classList.add('active'); renderEmlakList(); }});
+['emlak-search','emlak-tur-filter','emlak-durum-filter','fiyat-min','fiyat-max','musteri-search','musteri-durum-filter','musteri-kaynak-filter','global-search'].forEach(id=>{ const el=document.getElementById(id); if(el){ el.addEventListener('input',()=>{ if(id.includes('emlak')) renderEmlakList(); else renderMusteriList(); }); }});
+initApp();
+</script>
+</body>
+</html>
